@@ -1,20 +1,49 @@
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TemperatureContextProvider } from './contexts/TemperatureContext';
+import IndexScreen from './app/tabs/index';
+import NotificacaoScreen from './app/tabs/notificacao';
+import { useNotifications } from './hooks/useNotifications';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function App() {
+const Tab = createBottomTabNavigator();
+
+const App: React.FC = () => {
+  useNotifications();
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <SafeAreaProvider>
       <StatusBar style="auto" />
-    </View>
-  );
-}
+      <NavigationContainer>
+        <TemperatureContextProvider>
+          <Tab.Navigator
+            screenOptions={({ route }) => ({
+              tabBarIcon: ({ color, size }) => {
+                let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+                if (route.name === 'Home') {
+                  iconName = 'home';
+                } else if (route.name === 'Notificações') {
+                  iconName = 'notifications';
+                }
+
+                return <Ionicons name={iconName} size={size} color={color} />;
+              },
+              tabBarActiveTintColor: 'tomato',
+              tabBarInactiveTintColor: 'gray',
+              headerShown: false, // Esta linha remove a barra de título
+            })}
+          >
+            <Tab.Screen name="Home" component={IndexScreen} />
+            <Tab.Screen name="Notificações" component={NotificacaoScreen} />
+          </Tab.Navigator>
+        </TemperatureContextProvider>
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+};
+
+export default App;
