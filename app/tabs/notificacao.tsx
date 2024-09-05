@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Platform, TouchableOpacity, Modal, Alert } from 'react-native';
-import { useSupabase } from '../../hooks/useSupabase'; // Ajuste o caminho conforme necessário
+import { useSupabase } from '../../hooks/useSupabase'; 
 import * as Notifications from 'expo-notifications';
 import { FontAwesome } from '@expo/vector-icons';
 
@@ -30,7 +30,6 @@ const NotificacaoScreen: React.FC = () => {
           return;
         }
 
-        // Solicitar permissão de notificações na web
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           console.log('Permissão para notificações não concedida.');
@@ -190,7 +189,6 @@ const NotificacaoScreen: React.FC = () => {
         />
       </View>
 
-      {/* Modal de confirmação de exclusão */}
       <Modal
         visible={modalVisible}
         transparent={true}
