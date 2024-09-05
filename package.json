@@ -6,8 +6,12 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "expo build:web",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
+  "homepage": "https://larissabiancarochaa.github.io/<repository-name>",
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
     "@react-native-async-storage/async-storage": "^2.0.0",
@@ -38,6 +42,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "^18.3.5",
+    "gh-pages": "^6.1.1",
     "typescript": "^5.1.3"
   },
   "private": true
