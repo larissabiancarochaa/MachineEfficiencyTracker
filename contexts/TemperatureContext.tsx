@@ -1,12 +1,11 @@
-// contexts/TemperatureContext.tsx
 import React, { createContext, useState, ReactNode } from 'react';
 import { useSupabase } from '../hooks/useSupabase';
 
 interface TemperatureContextType {
   temperature: number | null;
   efficiency: number | null;
-  temperatureHistory: number[];  // Histórico de Temperatura
-  efficiencyHistory: number[];   // Histórico de Eficiência
+  temperatureHistory: number[];  
+  efficiencyHistory: number[];
   updateTemperature: (temp: number) => void;
   updateEfficiency: (eff: number) => void;
   addTemperatureReading: (timestamp: string, temperature: number, efficiency: number) => void;

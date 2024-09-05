@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios, { AxiosError } from 'axios';
-import { API_KEY, CITY, BASE_URL } from '../constants/api'; 
+import { API_KEY, CITY, BASE_URL } from '../constants/api';
 
 interface TemperatureData {
   temperature: number;
@@ -14,8 +14,8 @@ export const useFetchTemperature = () => {
   const fetchTemperature = async (): Promise<TemperatureData | null> => {
     setLoading(true);
     setError(null);
-    let retries = 5; 
-    let delay = 10000; 
+    let retries = 5;
+    let delay = 10000;
 
     while (retries > 0) {
       try {
@@ -25,17 +25,23 @@ export const useFetchTemperature = () => {
 
         const data = response.data;
 
-        const temperature = parseFloat(data.main.temp);
+        // Format the temperature to two decimal places
+        const temperature = parseFloat(data.main.temp).toFixed(2);
         let efficiency = 75;
-        if (temperature >= 28) {
+        const temperatureValue = parseFloat(temperature);
+
+        if (temperatureValue >= 28) {
           efficiency = 100;
-        } else if (temperature >= 24) {
-          efficiency = 75 + (temperature - 24) * (100 - 75) / (28 - 24);
+        } else if (temperatureValue >= 24) {
+          efficiency = 75 + (temperatureValue - 24) * (100 - 75) / (28 - 24);
         }
 
+        // Format the efficiency to two decimal places
+        const formattedEfficiency = efficiency.toFixed(2);
+
         return {
-          temperature,
-          efficiency,
+          temperature: parseFloat(temperature),
+          efficiency: parseFloat(formattedEfficiency),
         };
       } catch (err) {
         if (axios.isAxiosError(err)) {
@@ -44,7 +50,7 @@ export const useFetchTemperature = () => {
             retries -= 1;
             console.error('Rate limit exceeded, retrying...', { retries });
             await new Promise((resolve) => setTimeout(resolve, delay));
-            delay *= 2; 
+            delay *= 2;
           } else {
             setError('Failed to fetch temperature');
             console.error('Error fetching temperature:', axiosError);

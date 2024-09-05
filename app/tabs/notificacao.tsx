@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, Platform, TouchableOpacity, Modal, Al
 import { useSupabase } from '../../hooks/useSupabase'; 
 import * as Notifications from 'expo-notifications';
 import { FontAwesome } from '@expo/vector-icons';
+import { useColors } from '../../contexts/ThemeContext';
 
 interface NotificationItem {
   id: number;
@@ -162,25 +163,27 @@ const NotificacaoScreen: React.FC = () => {
     setModalVisible(true);
   };
 
+  const currentColors = useColors(); // Obtém as cores atuais do tema
+
   return (
-    <View style={styles.outerContainer}>
-      <View style={styles.container}>
-        <Text style={styles.header}>Notificações Recentes</Text>
+    <View style={[styles.outerContainer, { backgroundColor: currentColors.background }]}>
+      <View style={[styles.container, { backgroundColor: currentColors.background }]}>
+        <Text style={[styles.header, { color: currentColors.text }]}>Notificações Recentes</Text>
         <FlatList
           data={notifications}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View style={styles.notificationContainer}>
+            <View style={[styles.notificationContainer, { backgroundColor: currentColors.notificationBackground }]}>
               <View style={styles.notificationContent}>
-                <Text style={styles.notificationTitle}>Atualização</Text>
-                <Text style={styles.notificationBody}>{item.message}</Text>
-                <Text style={styles.timeAgo}>{formatTimeDifference(item.sent_at)}</Text>
+                <Text style={[styles.notificationTitle, { color: currentColors.text }]}>Atualização</Text>
+                <Text style={[styles.notificationBody, { color: currentColors.text }]}>{item.message}</Text>
+                <Text style={[styles.timeAgo, { color: currentColors.text }]}>{formatTimeDifference(item.sent_at)}</Text>
               </View>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.deleteButton, { backgroundColor: currentColors.modalButtonBackground }]}
                 onPress={() => handleDeleteButtonPress(item)}
               >
-                <FontAwesome name="trash" size={24} color="#ff6f6f" />
+                <FontAwesome name="trash" size={24} color={currentColors.modalButtonText} />
               </TouchableOpacity>
             </View>
           )}
@@ -196,21 +199,21 @@ const NotificacaoScreen: React.FC = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirmar Exclusão</Text>
-            <Text style={styles.modalMessage}>Tem certeza que deseja excluir esta notificação?</Text>
+          <View style={[styles.modalContent, { backgroundColor: currentColors.modalContentBackground }]}>
+            <Text style={[styles.modalTitle, { color: currentColors.text }]}>Confirmar Exclusão</Text>
+            <Text style={[styles.modalMessage, { color: currentColors.text }]}>Tem certeza que deseja excluir esta notificação?</Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, { backgroundColor: currentColors.modalButtonBackground }]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.modalButtonText}>Cancelar</Text>
+                <Text style={[styles.modalButtonText, { color: currentColors.modalButtonText }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, { backgroundColor: currentColors.modalButtonBackground }]}
                 onPress={handleDeleteNotification}
               >
-                <Text style={styles.modalButtonText}>Excluir</Text>
+                <Text style={[styles.modalButtonText, { color: currentColors.modalButtonText }]}>Excluir</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -221,23 +224,28 @@ const NotificacaoScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, alignItems: 'center', padding: 20, backgroundColor: '#ffffff' },
+  outerContainer: { flex: 1, alignItems: 'center', padding: 20 },
   container: { width: '90%', maxWidth: 700, flex: 1 },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, marginTop: 20, color: '#185a9d' },
+  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, marginTop: 20 },
   notificationContainer: { 
     marginBottom: 15, 
     padding: 15, 
-    backgroundColor: '#f8f8f8', 
     elevation: 3, 
     flexDirection: 'row', 
-    alignItems: 'center' 
+    alignItems: 'center', 
   },
   notificationContent: { flex: 1 },
-  notificationTitle: { fontSize: 16, fontWeight: 'bold', color: '#185a9d' },
-  notificationBody: { fontSize: 14, marginVertical: 5 },
-  timeAgo: { fontSize: 12, color: '#777' },
-  deleteButton: { padding: 10 },
+  notificationTitle: { fontWeight: 'bold', marginBottom: 5 },
+  notificationBody: { marginBottom: 5 },
+  timeAgo: { fontSize: 12, color: 'gray' },
   flatListContent: { paddingBottom: 20 },
+  deleteButton: { 
+    width: 40, 
+    height: 40, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#d9534f' 
+  },
   modalContainer: { 
     flex: 1, 
     justifyContent: 'center', 
@@ -246,22 +254,35 @@ const styles = StyleSheet.create({
   },
   modalContent: { 
     width: '80%', 
-    maxWidth: 300,
     padding: 20, 
-    backgroundColor: '#fff', 
-    borderRadius: 10, 
+    alignItems: 'center',
+    maxWidth: 300, 
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 10 
+  },
+  modalMessage: { 
+    fontSize: 16, 
+    marginBottom: 20,
+    textAlign: 'center' 
+  },
+  modalButtons: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    width: '100%',
+    gap: 20, 
+  },
+  modalButton: { 
+    flex: 1, 
+    padding: 10, 
     alignItems: 'center' 
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  modalMessage: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
-  modalButtons: { flexDirection: 'row' },
-  modalButton: { 
-    padding: 10, 
-    marginHorizontal: 10, 
-    backgroundColor: '#185a9d', 
-    borderRadius: 5 
+  modalButtonText: { 
+    fontSize: 16, 
+    fontWeight: 'bold' 
   },
-  modalButtonText: { color: '#fff', fontSize: 16 }
 });
 
 export default NotificacaoScreen;

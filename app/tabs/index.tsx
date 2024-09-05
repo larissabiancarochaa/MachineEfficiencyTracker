@@ -4,6 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LineChart from '../../components/LineChart';
 import { useTemperatureContext } from '../../contexts/TemperatureContext';
 import { useFetchTemperature } from '../../hooks/useFetchTemperature';
+import { useColors } from '../../contexts/ThemeContext';
+import ExportButton from '../../components/ExportButton';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -11,6 +13,8 @@ const IndexScreen: React.FC = () => {
   const { temperature, efficiency, updateTemperature, updateEfficiency, addTemperatureReading } = useTemperatureContext();
   const { fetchTemperature } = useFetchTemperature();
   const [loading, setLoading] = useState<boolean>(false);
+
+  const colors = useColors();
 
   const fetchData = async () => {
     setLoading(true);
@@ -41,24 +45,24 @@ const IndexScreen: React.FC = () => {
   }, []);
 
   return (
-    <View style={styles.outerContainer}>
-      <View style={styles.container}>
+    <View style={[styles.outerContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Image
           source={require('../../assets/logo.png')} 
           style={styles.logo}
         />
         
         <View style={styles.cardContainer}>
-          <View style={styles.card}>
-            <MaterialCommunityIcons name="thermometer" size={24} color="#185a9d" />
-            <Text style={styles.cardTitle}>Temperatura Atual</Text>
-            <Text style={styles.cardValue}>{temperature ? `${temperature}°C` : 'N/A'}</Text>
+          <View style={[styles.card, { backgroundColor: colors.formBackground }]}>
+            <MaterialCommunityIcons name="thermometer" size={24} color={colors.sunOrange} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Temperatura Atual</Text>
+            <Text style={[styles.cardValue, { color: colors.text }]}>{temperature ? `${temperature}°C` : 'N/A'}</Text>
           </View>
           
-          <View style={styles.card}>
-            <MaterialCommunityIcons name="gauge" size={24} color="#43cea2" />
-            <Text style={styles.cardTitle}>Eficiência da Máquina</Text>
-            <Text style={styles.cardValue}>{efficiency ? `${efficiency}%` : 'N/A'}</Text>
+          <View style={[styles.card, { backgroundColor: colors.formBackground }]}>
+            <MaterialCommunityIcons name="gauge" size={24} color={colors.green} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Eficiência da Máquina</Text>
+            <Text style={[styles.cardValue, { color: colors.text }]}>{efficiency ? `${efficiency}%` : 'N/A'}</Text>
           </View>
         </View>
 
@@ -66,13 +70,14 @@ const IndexScreen: React.FC = () => {
 
         {Platform.OS !== 'web' && (
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonLoading]}
+            style={[styles.button, loading && styles.buttonLoading, { backgroundColor: colors.buttonBackground }]}
             onPress={fetchData}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>{loading ? 'Carregando...' : 'Atualizar Dados'}</Text>
+            <Text style={[styles.buttonText, { color: colors.buttonText }]}>{loading ? 'Carregando...' : 'Atualizar Dados'}</Text>
           </TouchableOpacity>
         )}
+        <ExportButton />
       </View>
     </View>
   );
@@ -95,13 +100,6 @@ const styles = StyleSheet.create({
     marginBottom: 10, 
     alignSelf: 'center', 
   },
-  companyName: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 20,
-    marginBottom: 40,
-  },
   cardContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -110,7 +108,6 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (screenWidth * 0.9 - 60) / 2,
-    backgroundColor: '#ffffff',
     padding: 15,
     marginBottom: 20,
     shadowColor: '#000',
@@ -129,10 +126,8 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 24,
-    color: '#333',
   },
   button: {
-    backgroundColor: '#185a9d',
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -143,7 +138,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
