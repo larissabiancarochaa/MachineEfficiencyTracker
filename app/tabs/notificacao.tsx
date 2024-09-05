@@ -1,174 +1,269 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Platform, TouchableOpacity, Modal, Alert } from 'react-native';
+import { useSupabase } from '../../hooks/useSupabase'; // Ajuste o caminho conforme necessário
 import * as Notifications from 'expo-notifications';
-import { useTemperatureContext } from '../../contexts/TemperatureContext';
-import { useFetchTemperature } from '../../hooks/useFetchTemperature';
-import { useSupabase } from '../../hooks/useSupabase'; 
+import { FontAwesome } from '@expo/vector-icons';
 
-const CRITICAL_TEMPERATURE_THRESHOLD = 18; 
-const CRITICAL_EFFICIENCY_THRESHOLD = 70; 
-const MIN_NOTIFICATION_INTERVAL_MS = 5 * 60 * 1000;
+interface NotificationItem {
+  id: number;
+  message: string;
+  sent_at: string;
+}
 
 const NotificacaoScreen: React.FC = () => {
-  const [notifications, setNotifications] = useState<{ id: string, title: string, body: string, timestamp: number }[]>([]);
-  const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
-  const { temperature, efficiency } = useTemperatureContext();
-  const { fetchTemperature } = useFetchTemperature();
-  const { supabase } = useSupabase(); 
+  const { supabase } = useSupabase();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<NotificationItem | null>(null);
 
   useEffect(() => {
-    const requestPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Você precisa permitir notificações para usar este recurso.');
-        return;
-      }
-    };
+    const getNotificationPermissions = async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') {
+          await Notifications.requestPermissionsAsync();
+        }
+      } else {
+        if (!('Notification' in window)) {
+          console.log('Este navegador não suporta notificações.');
+          return;
+        }
 
-    requestPermissions();
-
-    // Load notifications from the database
-    const loadNotifications = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .order('timestamp', { ascending: false });
-          
-        if (error) throw error;
-
-        setNotifications(data || []);
-        const lastTime = data && data.length > 0 ? Math.max(...data.map(n => n.timestamp)) : 0;
-        setLastNotificationTime(lastTime);
-      } catch (error) {
-        console.error('Failed to load notifications', error);
-      }
-    };
-
-    loadNotifications();
-
-    // Check temperature and notify periodically
-    const checkTemperatureAndNotify = async () => {
-      const data = await fetchTemperature();
-      if (data) {
-        const currentTime = Date.now();
-
-        // Check if enough time has passed since the last notification
-        if (currentTime - lastNotificationTime >= MIN_NOTIFICATION_INTERVAL_MS) {
-          let notificationBody = '';
-
-          // Construct notification body based on critical values
-          if (data.temperature >= CRITICAL_TEMPERATURE_THRESHOLD && data.efficiency < CRITICAL_EFFICIENCY_THRESHOLD) {
-            notificationBody = `Temperatura crítica: ${data.temperature}°C, Eficiência crítica: ${data.efficiency}%.`;
-          } else if (data.temperature >= CRITICAL_TEMPERATURE_THRESHOLD) {
-            notificationBody = `Temperatura crítica: ${data.temperature}°C.`;
-          } else if (data.efficiency < CRITICAL_EFFICIENCY_THRESHOLD) {
-            notificationBody = `Eficiência crítica: ${data.efficiency}%.`;
-          }
-
-          // Notify if there is any critical condition
-          if (notificationBody) {
-            // Schedule notification
-            const notificationId = await Notifications.scheduleNotificationAsync({
-              content: {
-                title: "Aviso Crítico",
-                body: notificationBody,
-                sound: 'default',
-              },
-              trigger: null, // Trigger immediately for testing
-            });
-
-            // Save notification to the database
-            const { error } = await supabase
-              .from('notifications')
-              .insert([
-                {
-                  id: notificationId,
-                  title: "Aviso Crítico",
-                  body: notificationBody,
-                  timestamp: currentTime,
-                },
-              ]);
-
-            if (error) {
-              console.error('Failed to save notification', error);
-              return;
-            }
-
-            // Update the last notification time
-            setLastNotificationTime(currentTime);
-          }
+        // Solicitar permissão de notificações na web
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('Permissão para notificações não concedida.');
         }
       }
     };
 
-    // Call the function initially and then set an interval
-    checkTemperatureAndNotify();
-    const interval = setInterval(checkTemperatureAndNotify, 30000); // Verifica a cada 30 segundos
+    getNotificationPermissions();
+  }, []);
 
-    // Clean up the interval on unmount
-    return () => {
-      clearInterval(interval);
+  useEffect(() => {
+    const fetchLatestLog = async () => {
+      const { data: log } = await supabase
+        .from('temperature_efficiency_log')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (log) {
+        const { temperature, efficiency } = log;
+        let message = '';
+
+        // Determinar a mensagem com base no valor crítico
+        if (temperature >= 20) {
+          message = `A temperatura atingiu ${temperature}°C. Verifique o sistema.`;
+        } else if (efficiency <= 70) {
+          message = `A eficiência caiu para ${efficiency}%. Ação necessária.`;
+        } else {
+          // Mensagem padrão com os valores mais recentes
+          message = `Temperatura: ${temperature}°C, Eficiência: ${efficiency}%`;
+        }
+
+        // Inserir a notificação no banco de dados
+        await supabase
+          .from('notifications')
+          .insert([
+            { message, notification_type: 'device', sent_at: new Date().toISOString(), temperature, efficiency },
+          ]);
+
+        if (Platform.OS !== 'web') {
+          // Agendar a notificação para iOS e Android
+          await Notifications.scheduleNotificationAsync({
+            content: { title: 'Atualização de Dados', body: message },
+            trigger: null,
+          });
+        } else {
+          // Mostrar notificação na web
+          new Notification('Atualização de Dados', { body: message });
+        }
+      }
     };
-  }, [fetchTemperature, lastNotificationTime, supabase]);
 
-  // Function to format the time difference
-  const formatTimeDifference = (timestamp: number) => {
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('sent_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        const latestNotification = data[0];
+        setLastNotificationTime(new Date(latestNotification.sent_at).getTime());
+      }
+
+      setNotifications(data || []);
+    };
+
+    // Inicializar a última notificação e buscar as notificações
+    fetchNotifications();
+
+    // Atualizar notificações se o tempo desde a última notificação for maior ou igual a 2 minutos
+    const checkNotificationInterval = () => {
+      const now = Date.now();
+      const interval = 120000; // 2 minutos em milissegundos
+      if (lastNotificationTime && now - lastNotificationTime >= interval) {
+        fetchLatestLog();
+      }
+    };
+
+    const notificationInterval = setInterval(checkNotificationInterval, 60000); // Checar a cada 1 minuto
+    return () => clearInterval(notificationInterval);
+  }, [supabase, lastNotificationTime]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('sent_at', { ascending: false });
+
+      setNotifications(data || []);
+    };
+
+    // Fetch notifications every 30 seconds
+    const refreshInterval = setInterval(fetchNotifications, 30000);
+    // Fetch notifications immediately on mount
+    fetchNotifications();
+
+    return () => clearInterval(refreshInterval);
+  }, [supabase]);
+
+  const formatTimeDifference = (timestamp: string) => {
     const now = Date.now();
-    const diffMs = now - timestamp;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
+    const diffMs = now - new Date(timestamp).getTime();
+    const diffMin = Math.floor(diffMs / 1000 / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
 
-    if (diffDay > 30) return `${Math.floor(diffDay / 30)} mês${Math.floor(diffDay / 30) > 1 ? 'es' : ''} atrás`;
     if (diffDay > 0) return `${diffDay} dia${diffDay > 1 ? 's' : ''} atrás`;
     if (diffHour > 0) return `${diffHour} hora${diffHour > 1 ? 's' : ''} atrás`;
-    if (diffMin > 0) return `${diffMin} minuto${diffMin > 1 ? 's' : ''} atrás`;
-    return `${diffSec} segundo${diffSec > 1 ? 's' : ''} atrás`;
+    return `${diffMin} minuto${diffMin > 1 ? 's' : ''} atrás`;
+  };
+
+  const handleDeleteNotification = async () => {
+    if (notificationToDelete) {
+      await supabase
+        .from('notifications')
+        .delete()
+        .match({ id: notificationToDelete.id });
+
+      setNotifications((prevNotifications) =>
+        prevNotifications.filter((item) => item.id !== notificationToDelete.id)
+      );
+      setModalVisible(false);
+    }
+  };
+
+  const handleDeleteButtonPress = (notification: NotificationItem) => {
+    setNotificationToDelete(notification);
+    setModalVisible(true);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Notificações Recentes</Text>
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.notificationContainer}>
-            <Text style={styles.notificationTitle}>{item.title}</Text>
-            <Text>{item.body}</Text>
-            <Text style={styles.timeAgo}>{formatTimeDifference(item.timestamp)}</Text>
+    <View style={styles.outerContainer}>
+      <View style={styles.container}>
+        <Text style={styles.header}>Notificações Recentes</Text>
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.notificationContainer}>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationTitle}>Atualização</Text>
+                <Text style={styles.notificationBody}>{item.message}</Text>
+                <Text style={styles.timeAgo}>{formatTimeDifference(item.sent_at)}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteButtonPress(item)}
+              >
+                <FontAwesome name="trash" size={24} color="#ff6f6f" />
+              </TouchableOpacity>
+            </View>
+          )}
+          contentContainerStyle={styles.flatListContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+
+      {/* Modal de confirmação de exclusão */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirmar Exclusão</Text>
+            <Text style={styles.modalMessage}>Tem certeza que deseja excluir esta notificação?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={handleDeleteNotification}
+              >
+                <Text style={styles.modalButtonText}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-      />
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  outerContainer: { flex: 1, alignItems: 'center', padding: 20, backgroundColor: '#ffffff' },
+  container: { width: '90%', maxWidth: 700, flex: 1 },
+  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, marginTop: 20, color: '#185a9d' },
+  notificationContainer: { 
+    marginBottom: 15, 
+    padding: 15, 
+    backgroundColor: '#f8f8f8', 
+    elevation: 3, 
+    flexDirection: 'row', 
+    alignItems: 'center' 
   },
-  text: {
-    fontSize: 18,
-    marginBottom: 10,
+  notificationContent: { flex: 1 },
+  notificationTitle: { fontSize: 16, fontWeight: 'bold', color: '#185a9d' },
+  notificationBody: { fontSize: 14, marginVertical: 5 },
+  timeAgo: { fontSize: 12, color: '#777' },
+  deleteButton: { padding: 10 },
+  flatListContent: { paddingBottom: 20 },
+  modalContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0, 0, 0, 0.5)' 
   },
-  notificationContainer: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 5,
+  modalContent: { 
+    width: '80%', 
+    maxWidth: 300,
+    padding: 20, 
+    backgroundColor: '#fff', 
+    borderRadius: 10, 
+    alignItems: 'center' 
   },
-  notificationTitle: {
-    fontWeight: 'bold',
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  modalMessage: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
+  modalButtons: { flexDirection: 'row' },
+  modalButton: { 
+    padding: 10, 
+    marginHorizontal: 10, 
+    backgroundColor: '#185a9d', 
+    borderRadius: 5 
   },
-  timeAgo: {
-    marginTop: 5,
-    fontStyle: 'italic',
-    color: '#555',
-  },
+  modalButtonText: { color: '#fff', fontSize: 16 }
 });
 
 export default NotificacaoScreen;

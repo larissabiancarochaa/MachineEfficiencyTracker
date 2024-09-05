@@ -15,13 +15,13 @@ const LineChartComponent: React.FC = () => {
     datasets: [
       {
         data: temperatureHistory,
-        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-        strokeWidth: 2,
+        color: (opacity = 1) => `rgba(0, 148, 255, ${opacity})`,
+        strokeWidth: 3, 
       },
       {
         data: efficiencyHistory,
-        color: (opacity = 1) => `rgba(255, 99, 71, ${opacity})`,
-        strokeWidth: 2,
+        color: (opacity = 1) => `rgba(255, 159, 64, ${opacity})`, 
+        strokeWidth: 3, 
       },
     ],
   };
@@ -29,38 +29,37 @@ const LineChartComponent: React.FC = () => {
   return (
     <View style={styles.container}>
       {hasData ? (
-        <LineChart
-          data={data}
-          width={screenWidth - 32}
-          height={220}
-          yAxisLabel=""
-          yAxisSuffix=""
-          yAxisInterval={1}
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
-            decimalPlaces: 2,
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: '6',
-              strokeWidth: '2',
-              stroke: '#ffffff',
-            },
-          }}
-          bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-            ...(Platform.OS === 'web' ? { maxWidth: '100%' } : {}), 
-          }}
-        />
+        <View style={styles.chartWrapper}>
+          <LineChart
+            data={data}
+            width={Dimensions.get('window').width * 0.9 - 32} 
+            height={220}
+            yAxisLabel=""
+            yAxisSuffix=""
+            yAxisInterval={1}
+            chartConfig={{
+              backgroundColor: '#1e2923',
+              backgroundGradientFrom: '#43cea2',
+              backgroundGradientTo: '#185a9d',
+              decimalPlaces: 2,
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, 
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, 
+              style: {
+                borderRadius: 16,
+                elevation: 10,
+              },
+              propsForDots: {
+                r: '6',
+                strokeWidth: '2',
+                stroke: '#185a9d',
+              },
+            }}
+            bezier
+            style={styles.chart}
+          />
+        </View>
       ) : (
-        <Text style={styles.noDataText}>No data available</Text>
+        <Text style={styles.noDataText}>Nenhum dado disponível</Text>
       )}
     </View>
   );
@@ -68,13 +67,25 @@ const LineChartComponent: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 30,
+  },
+  chartWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  chart: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3.84,
+    overflow: 'hidden',
   },
   noDataText: {
     fontSize: 18,
     color: '#888',
+    fontStyle: 'italic',
   },
 });
 

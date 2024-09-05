@@ -32,9 +32,9 @@ const App: React.FC = () => {
 
                 return <Ionicons name={iconName} size={size} color={color} />;
               },
-              tabBarActiveTintColor: 'tomato',
+              tabBarActiveTintColor: '#185a9d',
               tabBarInactiveTintColor: 'gray',
-              headerShown: false, // Esta linha remove a barra de título
+              headerShown: false,
             })}
           >
             <Tab.Screen name="Home" component={IndexScreen} />
