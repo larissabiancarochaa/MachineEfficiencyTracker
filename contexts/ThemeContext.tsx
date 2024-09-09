@@ -1,5 +1,3 @@
-// ThemeContext.tsx
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { lightTheme, darkTheme } from '../constants/colors';
 

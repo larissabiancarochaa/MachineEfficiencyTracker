@@ -2,7 +2,6 @@
 
 // Define o tema claro
 export const lightTheme = {
-    // Cores principais
     background: '#f5f5f5',
     formBackground: '#ffffff',
     text: '#333333',

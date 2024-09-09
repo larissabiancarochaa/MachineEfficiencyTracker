@@ -25,7 +25,7 @@ export const useFetchTemperature = () => {
 
         const data = response.data;
 
-        // Format the temperature to two decimal places
+        // Formata a temperatura em decimal
         const temperature = parseFloat(data.main.temp).toFixed(2);
         let efficiency = 75;
         const temperatureValue = parseFloat(temperature);
@@ -36,7 +36,7 @@ export const useFetchTemperature = () => {
           efficiency = 75 + (temperatureValue - 24) * (100 - 75) / (28 - 24);
         }
 
-        // Format the efficiency to two decimal places
+        // Formata a eficiencia em decimal
         const formattedEfficiency = efficiency.toFixed(2);
 
         return {

@@ -1,4 +1,3 @@
-// components/ExportButton.tsx
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
@@ -14,7 +13,6 @@ const ExportButton: React.FC = () => {
 
   const downloadExcel = async () => {
     try {
-      // Fetch data from Supabase
       const { data, error } = await supabase
         .from('temperature_efficiency_log')
         .select('*');
@@ -22,16 +20,15 @@ const ExportButton: React.FC = () => {
       if (error) throw error;
 
       if (data) {
-        // Convert data to worksheet
+        // Conversão de data
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Data');
         
-        // Create Excel file
+        // Crea o excel
         const excelFile = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
         
         if (Platform.OS === 'web') {
-          // Create a Blob and trigger download in the browser
           const blob = new Blob([new Uint8Array(excelFile)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -41,7 +38,7 @@ const ExportButton: React.FC = () => {
           a.click();
           document.body.removeChild(a);
         } else {
-          // Save file on mobile
+          // Salva o excel no mobile
           const fileUri = FileSystem.cacheDirectory + 'temperature_efficiency_log.xlsx';
           await FileSystem.writeAsStringAsync(fileUri, excelFile, { encoding: FileSystem.EncodingType.Base64 });
           await Sharing.shareAsync(fileUri);
